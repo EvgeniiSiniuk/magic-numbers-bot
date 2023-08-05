@@ -30,8 +30,7 @@ public class Bot extends TelegramLongPollingBot {
             CallbackQuery callbackQuery = update.getCallbackQuery();
             String callbackData = callbackQuery.getData();
             String chatId = String.valueOf(callbackQuery.getMessage().getChatId());
-            int messageId = callbackQuery.getMessage().getMessageId();
-            long userId = callbackQuery.getMessage().getFrom().getId();
+            long userId = callbackQuery.getFrom().getId();
             System.out.println(callbackData + " " + chatId);
 
             if (callbackData.contains("year_energy")) {
@@ -72,6 +71,8 @@ public class Bot extends TelegramLongPollingBot {
                         initBot(chatId);
                         break;
                 }
+            } else {
+                sendMessageWithBackBtn(chatId, "Ошибка при вводе даты. Введите дату рождения в формате YYYY-MM-DD");
             }
         }
     }
