@@ -1,1 +1,1 @@
-bot: java -jar out/artifacts/magic_numbers_bot_jar/magic-numbers-bot.jar
+web: java -jar out/artifacts/magic_numbers_bot_jar/magic-numbers-bot.jar
