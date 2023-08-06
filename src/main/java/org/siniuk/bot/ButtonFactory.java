@@ -1,4 +1,4 @@
-package org.siniuk;
+package org.siniuk.bot;
 
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 
