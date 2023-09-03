@@ -1,14 +1,17 @@
 package org.siniuk.bot;
 
+import lombok.SneakyThrows;
 import org.siniuk.cache.BotState;
 import org.siniuk.cache.UserDataCache;
 import org.siniuk.messages.GeneralMessages;
 import org.siniuk.messages.InvoiceMessages;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.AnswerPreCheckoutQuery;
+import org.telegram.telegrambots.meta.api.methods.send.SendAudio;
 import org.telegram.telegrambots.meta.api.methods.send.SendInvoice;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
+import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.payments.LabeledPrice;
@@ -18,6 +21,8 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMa
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import java.io.File;
+import java.nio.file.NoSuchFileException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -25,11 +30,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.siniuk.messages.GeneralMessages.*;
+import static org.siniuk.utils.ArabicToRomanConverter.convertToRoman;
 
 public class Bot extends TelegramLongPollingBot {
 
     UserDataCache userDataCache = new UserDataCache();
 
+    @SneakyThrows
     @Override
     public void onUpdateReceived(Update update) {
 
@@ -58,7 +65,6 @@ public class Bot extends TelegramLongPollingBot {
             } else {
                 selectEnergyType(chatId);
             }
-
         } else if ((update.hasMessage())) {
             Message inMess = update.getMessage();
             String chatId = inMess.getChatId().toString();
@@ -89,13 +95,16 @@ public class Bot extends TelegramLongPollingBot {
                 } else if (isValidLocalDate(inMessText)) {
                     switch (botState) {
                         case YEAR_ENERGY:
-                            sendMessageWithBackBtn(chatId, "Ваша энергия года: " + EnergyCalculation.calculateYearEnergy(inMessText));
+                            sendAudioToChat(chatId, "energy_year/", EnergyCalculation.calculateYearEnergy(inMessText));
+                            sendMessageWithBackBtn(chatId, "Твоя энергия текущего года");
                             break;
                         case MONTH_ENERGY:
-                            sendMessageWithBackBtn(chatId, "Ваша энергия месяца: " + EnergyCalculation.calculateMonthEnergy(inMessText));
+                            sendAudioToChat(chatId, "energy_month/", EnergyCalculation.calculateMonthEnergy(inMessText));
+                            sendMessageWithBackBtn(chatId, "Твоя энергия текущего месяца");
                             break;
                         case PERSONAL_ENERGY:
-                            sendMessageWithBackBtn(chatId, "Ваша персональная энергия: " + EnergyCalculation.calculatePersonalEnergy(inMessText));
+                            sendAudioToChat(chatId, "energy_personal/", EnergyCalculation.calculatePersonalEnergy(inMessText));
+                            sendMessageWithBackBtn(chatId, "Твоя энергия личности в текущем месяце");
                             break;
                         default:
                             selectEnergyType(chatId);
@@ -238,6 +247,38 @@ public class Bot extends TelegramLongPollingBot {
         } catch (DateTimeParseException e) {
             return false;
         }
+    }
+
+    public void sendAudioToChat(String chatId, String audioFilePath, int number) throws NoSuchFileException {
+        SendAudio sendAudio = new SendAudio();
+        sendAudio.setChatId(chatId);
+        sendAudio.setAudio(new InputFile(new File(getFilePath(audioFilePath, number))));
+
+        try {
+            execute(sendAudio);
+        } catch (TelegramApiException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public String getFilePath(String audioFilePath, int number) throws NoSuchFileException {
+        String targetSymbols = " "+ convertToRoman(number) + ".";
+
+        File folder = new File(audioFilePath);
+        if (folder.exists() && folder.isDirectory()) {
+            File[] files = folder.listFiles();
+            if (files != null) {
+                for (File file : files) {
+                    if (file.isFile() && file.getName().contains(targetSymbols)) {
+                        System.out.println("Found file: " + file.getAbsolutePath());
+                        return file.getAbsolutePath();
+                    }
+                }
+            } else {
+                throw new NoSuchFileException("No such file in the folder.");
+            }
+        }
+        throw new NoSuchFileException("No files in the folder.");
     }
 
 //    private void initPayment(String chatId, long userId, Update update) {
